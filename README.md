@@ -12,7 +12,7 @@ Download and install Node.js from https://nodejs.org.
 ## Installation
 
 ```bash
-npm install windows-downloads-organizer --global
+npm install win-downloads-organizer --global
 ```
 
 ## Usage
