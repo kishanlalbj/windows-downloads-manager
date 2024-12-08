@@ -1,6 +1,6 @@
 {
   "name": "win-downloads-organizer",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "command-line tool to organize files in the Windows Downloads folder by automatically moving files with the same file extension into their respective folders",
   "main": "index.js",
   "keywords": [
