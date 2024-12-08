@@ -1,76 +1,123 @@
 #!/usr/bin/env node
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const arg = require("arg");
 const chalk = require("chalk");
 const packageJson = require("../package.json");
+const createLogger = require("../logger");
 
-const downloadPathRegex = /^(?:[A-Za-z]:\\)?(?:Users\\[^\\]+\\)?Downloads\\?$/;
-let DOWNLOADS_PATH;
+const logger = createLogger();
+
+const args = arg({
+  "--source": String,
+  "--extensions": [String],
+  "--help": Boolean,
+  "-h": "--help",
+  "-s": "--source",
+  "-v": Boolean
+});
+
+if (args["--help"]) printHelp();
+
+if (args["-v"]) printVersion();
+
+// Setting default path to Downloads
+let DEFAULT_PATH = path.join(os.homedir(), "Downloads");
+let extMap = {};
 
 try {
-  const args = arg({
-    "--path": String,
-    "--help": Boolean,
-    "-h": "--help",
-    "-p": "--path",
-    "-v": Boolean
+  if (process.platform !== "win32") {
+    throw new Error("We don't support your operating system");
+  }
+
+  const validPathRegex = /^[a-zA-Z]:\\(?:[\w\-. ]+(?:\\[\w\-. ]+)*\\?)$/;
+
+  let extensions = args["--extensions"];
+
+  // Without extension flag we dont know how to organize, hence throwing error
+  if (!extensions) {
+    throw new Error("Extensions are mandatory.");
+  }
+
+  let extensionNames = args["--extensions"][0].split(" ");
+
+  // Creating a map between fileExtension and folder to be created.
+  extensionNames.forEach((t) => {
+    const type = t.split(":")[0];
+    const folder = t.split(":")[1];
+
+    extMap[type] = folder;
   });
 
-  if (args["--path"]) {
-    if (process.platform !== "win32")
-      throw new Error("Currenly we only support Windows");
+  if (args["--source"]) {
+    const userPath = args["--source"];
 
-    if (downloadPathRegex.test(args["--path"])) {
-      DOWNLOADS_PATH = args["--path"];
-      startOrganizing();
-    } else {
-      throw new Error("Not a valid windows downloads path !");
-    }
+    const isValid = validPathRegex.test(userPath);
+
+    if (!isValid) throw new Error(`${userPath} is not provide a valid path`);
+
+    // override default path
+    DEFAULT_PATH = userPath;
   }
 
-  if (args["--help"]) {
-    console.log(`${chalk.blue("--path, -p")} Path to your downloads folder`);
-    console.log(`${chalk.blue("--help, -h")} Help with commands`);
-    console.log(`${chalk.blue("--v")}        Version of the CLI`);
-    process.exit(0);
-  }
-
-  if (args["-v"]) {
-    console.log(`Version ${packageJson.version}`);
-    process.exit(0);
-  }
+  startOrganizing(extMap);
 } catch (error) {
-  console.log(chalk.red(error.message));
-  console.log();
+  logger.warning(error.message);
   process.exit(1);
 }
 
 function startOrganizing() {
-  const allFilesAndFolders = fs.readdirSync(DOWNLOADS_PATH);
+  logger.highlight(DEFAULT_PATH);
+
+  const allFilesAndFolders = fs.readdirSync(DEFAULT_PATH);
 
   allFilesAndFolders.forEach((file) => {
-    const FILE_PATH = `${DOWNLOADS_PATH}/${file}`;
+    const FILE_PATH = `${DEFAULT_PATH}/${file}`;
 
     const fileDetails = fs.statSync(FILE_PATH);
 
-    if (fileDetails.isFile()) {
-      const ext = path.extname(FILE_PATH);
+    if (!fileDetails.isFile()) return;
 
-      const dirName = `${ext?.substring(1, ext.length)}s`;
+    // Get file extension
+    const ext = path.extname(FILE_PATH);
 
-      const DIR_PATH = `${DOWNLOADS_PATH}/${dirName}`;
+    // Get all available extensions from map
+    const availableExts = Object.keys(extMap);
+
+    // if no extensions just return
+    if (!availableExts.length) return;
+
+    // When you find the file extension in extensions map, create folder and move file
+    if (availableExts.includes(ext)) {
+      const dirName = extMap[ext];
+      const DIR_PATH = `${DEFAULT_PATH}/${dirName}`;
 
       if (!fs.existsSync(DIR_PATH)) {
-        console.log(chalk.green("Creating directory ", dirName));
         fs.mkdirSync(DIR_PATH);
       }
 
-      console.log(chalk.blue(" - Moving file to directory"));
       fs.renameSync(FILE_PATH, `${DIR_PATH}/${file}`);
     }
   });
 
-  console.log(chalk.green("Done."));
+  // console.log(chalk.green("Done."));
+  logger.log("Done");
+  process.exit(0);
+}
+
+function printHelp() {
+  logger.log("--source, -s        Source directory path");
+  logger.log(
+    "--extensions, -e   Extesnion Mapping of files and folders. Ex, .jpg:Images"
+  );
+  logger.log("--help, -h          Help on using the cli");
+  logger.log("--version. -v       Version of the cli");
+
+  process.exit(0);
+}
+
+function printVersion() {
+  logger.log(`Version ${packageJson.version}`);
   process.exit(0);
 }

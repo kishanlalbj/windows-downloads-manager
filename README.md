@@ -4,6 +4,11 @@
 
 A command-line tool for organizing files in your Windows Downloads folder by automatically sorting them into directories based on their file extensions. It helps keep your Downloads folder neat and categorized, making it easier to find your files.
 
+## Features:
+
+- Organizes files in the Downloads folder based on file extensions.
+- Customizable file extension-to-folder mapping.
+
 ## Prerequisites
 
 Node.js (v14 or higher) should be installed on your system.
@@ -19,11 +24,12 @@ npm install win-downloads-organizer --global
 
 Once installed, you can run the tool from the command line. By default, it will organize files in your Downloads folder.
 
-```bash
-wdo --path C:/Users/admin/Downloads
-```
+### Basic Command
 
-This will automatically sort your files into categorized folders in your Downloads folder based on its extensions
+```pwsh
+wdo --extensions "<.extension>:<folder>" [options]
+wdo --extensions ".jpg:Images .mp3:Musics .pdf:Documents .zip:Documents .exe:Apps
+```
 
 ---
 
@@ -31,13 +37,13 @@ This will automatically sort your files into categorized folders in your Downloa
 
 The CLI tool offers several options to customize its behavior:
 
-### `--path <path>, -p <path>`
+### `--source, -s <path>`
 
-- **Description:** Specify your windows downlods folder location
+- **Description:** Specify a custom directory to organize (default is the Downloads folder).
 - **Usage:**
 
-```bash
-wdo --path C:/Users/admin/Downloads
+```pwsh
+wdo --source C:/Users/admin/Downloads --extensions ".jpg:Images"
 ```
 
 ### `--help, -h`
